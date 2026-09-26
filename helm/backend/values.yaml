@@ -1,0 +1,80 @@
+replicaCount: 2
+
+image:
+  repository: <ACCOUNT_ID>.dkr.ecr.<REGION>.amazonaws.com/forkwise-backend
+  tag: "1.0.0"
+  pullPolicy: IfNotPresent
+
+nameOverride: ""
+fullnameOverride: "forkwise-backend"   # keep stable so the frontend's nginx proxy_pass resolves
+
+service:
+  type: ClusterIP
+  port: 4000
+
+serviceAccount:
+  create: true
+  annotations: {}
+    # eks.amazonaws.com/role-arn: arn:aws:iam::<ACCOUNT_ID>:role/forkwise-backend-irsa
+  name: ""
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: 500m
+    memory: 256Mi
+
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 6
+  targetCPUUtilizationPercentage: 70
+
+probes:
+  liveness:
+    path: /api/health
+    initialDelaySeconds: 10
+    periodSeconds: 15
+  readiness:
+    path: /api/health
+    initialDelaySeconds: 5
+    periodSeconds: 10
+
+env:
+  NODE_ENV: production
+  PORT: "4000"
+  JWT_EXPIRES_IN: "7d"
+  CORS_ORIGIN: "*"
+  PGPORT: "5432"
+  PGSSLMODE: require
+
+# Non-sensitive RDS connection details (host/db/user). Populate PGHOST with the
+# RDS endpoint, e.g. forkwise-db.xxxxxxxxxx.us-east-1.rds.amazonaws.com
+rds:
+  host: ""
+  database: forkwise
+  user: forkwise_app
+
+# Secret values. For production, prefer External Secrets Operator / AWS Secrets
+# Manager CSI driver instead of plaintext values; existingSecret lets you point
+# at a Secret managed outside this chart.
+secret:
+  create: true
+  existingSecret: ""     # if set, this chart will not create its own Secret
+  jwtSecret: "change-me"
+  pgPassword: "change-me"
+
+ingress:
+  enabled: false
+  className: alb
+  annotations:
+    alb.ingress.kubernetes.io/scheme: internal
+    alb.ingress.kubernetes.io/target-type: ip
+  host: api.forkwise.example.com
+
+podAnnotations: {}
+nodeSelector: {}
+tolerations: []
+affinity: {}

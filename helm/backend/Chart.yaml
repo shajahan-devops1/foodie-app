@@ -1,0 +1,6 @@
+apiVersion: v2
+name: forkwise-backend
+description: Helm chart for the Forkwise food-delivery API (Node.js/Express, connects to AWS RDS PostgreSQL)
+type: application
+version: 1.0.0
+appVersion: "1.0.0"

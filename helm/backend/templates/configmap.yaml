@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "forkwise-backend.fullname" . }}-config
+  labels:
+    {{- include "forkwise-backend.labels" . | nindent 4 }}
+data:
+  NODE_ENV: {{ .Values.env.NODE_ENV | quote }}
+  PORT: {{ .Values.env.PORT | quote }}
+  JWT_EXPIRES_IN: {{ .Values.env.JWT_EXPIRES_IN | quote }}
+  CORS_ORIGIN: {{ .Values.env.CORS_ORIGIN | quote }}
+  PGHOST: {{ .Values.rds.host | quote }}
+  PGPORT: {{ .Values.env.PGPORT | quote }}
+  PGDATABASE: {{ .Values.rds.database | quote }}
+  PGUSER: {{ .Values.rds.user | quote }}
+  PGSSLMODE: {{ .Values.env.PGSSLMODE | quote }}
