@@ -1,0 +1,19 @@
+replicaCount: 2
+image:
+  repository: 000000000000.dkr.ecr.us-east-1.amazonaws.com/food-delivery
+  tag: latest
+  pullPolicy: IfNotPresent
+service:
+  type: ClusterIP
+  port: 80
+  targetPort: 8080
+containerPort: 8080
+resources:
+  requests: {cpu: 100m, memory: 128Mi}
+  limits: {cpu: 500m, memory: 512Mi}
+env:
+  NODE_ENV: production
+  PORT: "8080"
+probes:
+  liveness: {path: /healthz, initialDelaySeconds: 10, periodSeconds: 10}
+  readiness: {path: /readyz, initialDelaySeconds: 5, periodSeconds: 5}

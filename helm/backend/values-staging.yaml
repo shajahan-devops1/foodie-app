@@ -1,8 +1,0 @@
-replicaCount: 2
-autoscaling:
-  enabled: true
-  minReplicas: 2
-  maxReplicas: 4
-ingress:
-  enabled: true
-  host: api-staging.forkwise.example.com
