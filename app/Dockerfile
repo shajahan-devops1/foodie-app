@@ -1,10 +1,29 @@
-FROM node:22-alpine
+FROM node:20.20.2-alpine3.22 AS builder
+# creates /app and set the directory to /app
 WORKDIR /app
-COPY package*.json ./
-RUN npm install
-RUN apk update && apk upgrade --no-cache && \
-COPY src ./src
-ENV NODE_ENV=production PORT=8080
-USER node
+COPY package.json .
+COPY *.js .
+# node_modules
+RUN npm install 
+
+FROM node:20.20.2-alpine3.22
+WORKDIR /app
 EXPOSE 8080
-CMD ["node","src/server.js"]
+ENV MONGO="true" \
+    MONGO_URL="mongodb://mongodb:27017/catalogue"
+RUN apk update && apk upgrade --no-cache && \
+    addgroup -S roboshop && adduser -S -G roboshop roboshop && \
+    chown -R roboshop:roboshop /app
+COPY --from=builder /app /app
+USER roboshop
+CMD ["node", "src/server.js"]
+
+# FROM node:20
+# # this creates /app and move there
+# WORKDIR /app
+# COPY package.json .
+# COPY *.js .
+# RUN npm install
+# ENV MONGO="true" \
+#     MONGO_URL="mongodb://mongodb:27017/catalogue"
+# CMD ["node", "server.js"]c
