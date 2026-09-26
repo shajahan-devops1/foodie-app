@@ -68,7 +68,7 @@ pipeline {
       steps {
         sh '''
           // Scan the image, not the repo folder
-          sh 'trivy image --severity HIGH,CRITICAL food-delivery-api:latest'
+          trivy config --exit-code 1 --severity HIGH,CRITICAL --format table ./Dockerfile
         '''
       }
     }
