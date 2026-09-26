@@ -26,7 +26,7 @@ pipeline {
       steps { checkout scm }
     }
 
-    stage('Install & Test') {
+    stage('unit tests') {
       steps {
         dir('app') {
           sh 'npm install'
@@ -91,8 +91,8 @@ pipeline {
           helm upgrade --install food-delivery ./helm/food-delivery \
             --namespace "$K8S_NAMESPACE" \
             -f "./helm/food-delivery/values-${DEPLOY_ENV}.yaml" \
-            --set image.repository="$ECR_REGISTRY/$IMAGE_REPO" \
-            --set image.tag="$IMAGE_TAG" \
+            --set image.repository="906303433456.dkr.ecr.us-east-1.amazonaws.com/food-app/frontend" \
+            --set image.tag="latest" \
             --wait --timeout 5m
 
           kubectl rollout status deployment/food-delivery-food-delivery -n "$K8S_NAMESPACE" --timeout=5m
