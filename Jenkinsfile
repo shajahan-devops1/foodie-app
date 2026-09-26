@@ -86,16 +86,23 @@ pipeline {
       steps {
         sh '''
           aws eks update-kubeconfig --name roboshop --region us-east-1
+
           kubectl create namespace "$K8S_NAMESPACE" --dry-run=client -o yaml | kubectl apply -f -
 
+          # Run Helm Upgrade
           helm upgrade --install food-delivery ./helm/food-delivery \
             --namespace "$K8S_NAMESPACE" \
             -f "./helm/food-delivery/values-${DEPLOY_ENV}.yaml" \
             --set image.repository="906303433456.dkr.ecr.us-east-1.amazonaws.com/food-app/frontend" \
             --set image.tag="latest" \
-            --wait --timeout 5m
+            --set image.pullPolicy="Always"
 
-          kubectl rollout status deployment/food-delivery-food-delivery -n "$K8S_NAMESPACE" --timeout=5m
+          # Force EKS to do a rolling restart with the freshly pushed image
+          kubectl rollout restart deployment/food-delivery-food-delivery -n "$K8S_NAMESPACE"
+
+          # Wait for the new pods to pass readiness checks
+          kubectl rollout status deployment/food-delivery-food-delivery -n "$K8S_NAMESPACE" --timeout=3m
+
           kubectl get pods -n "$K8S_NAMESPACE"
         '''
       }
