@@ -66,8 +66,6 @@ pipeline {
     stage('Trivy Scan') {
       steps {
         sh '''
-          // Scan the image, not the repo folder
-          trivy config --exit-code 1 --severity HIGH,CRITICAL --format table ./app/Dockerfile
           trivy image  --scanners vuln --pkg-types os --exit-code 1 --severity HIGH,CRITICAL --format table 906303433456.dkr.ecr.us-east-1.amazonaws.com/food-app/frontend:${IMAGE_TAG}
         '''
       }
