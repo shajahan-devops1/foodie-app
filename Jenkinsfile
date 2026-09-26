@@ -105,9 +105,7 @@ pipeline {
         dir('.') {
           withSonarQubeEnv('sonar-scanner') {   // name of the server configured in Manage Jenkins > System
             sh '''
-              sonar-scanner \
-                -Dsonar.projectKey=${SONAR_PROJECT_KEY} \
-                -Dsonar.projectVersion=${IMAGE_TAG}
+              sh "${tool 'sonar-8'}/bin/sonar-scanner"
             '''
           }
         }
