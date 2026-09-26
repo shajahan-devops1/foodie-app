@@ -2,6 +2,21 @@
   "name": "food-delivery-api",
   "version": "1.0.0",
   "private": true,
-  "scripts": {"start": "node src/server.js", "test": "node --test"},
-  "dependencies": {"express": "^5.1.0"}
+  "scripts": {
+    "start": "node src/server.js",
+    "test": "node --test"
+  },
+  "dependencies": {
+    "express": "^5.1.0"
+  },
+  "resolutions": {
+    "brace-expansion": "5.0.7",
+    "cross-spawn": "7.0.5",
+    "glob": "11.1.0",
+    "ip-address": "10.3.1",
+    "minimatch": "10.2.3",
+    "pacote": "21.5.1",
+    "sigstore": "4.1.1",
+    "tar": "7.5.19"
+  }
 }
