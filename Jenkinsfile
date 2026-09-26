@@ -120,14 +120,6 @@ pipeline {
     }
   }
 
-    stage('Post build actions') {
-      steps {
-        script {
-          echo "Post build actions for ${params.DEPLOY_ENV} is executed."
-        }
-      }
-    }
-
   post {
     success { echo "Food delivery pipeline completed successfully for ${params.DEPLOY_ENV}" }
     failure { echo "Food delivery pipeline failed." }
