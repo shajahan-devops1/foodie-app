@@ -68,7 +68,7 @@ pipeline {
       steps {
         sh '''
           // Scan the image, not the repo folder
-          trivy config --exit-code 1 --severity HIGH,CRITICAL --format table ./Dockerfile
+          trivy config --exit-code 1 --severity HIGH,CRITICAL --format table app/Dockerfile
         '''
       }
     }
