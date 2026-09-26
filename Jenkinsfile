@@ -72,8 +72,13 @@ pipeline {
     }
 
     stage('Push to ECR') {
-      when { expression { return !params.SKIP_DEPLOY } }
       steps {
+        withAWS(credentials: 'aws-creds', region: "${AWS_REGION}") {
+          sh '''
+            docker tag food-app/frontend:latest 906303433456.dkr.ecr.us-east-1.amazonaws.com/food-app/frontend:latest
+            docker push 906303433456.dkr.ecr.us-east-1.amazonaws.com/food-app/frontend:latest
+          '''
+        }
         withAWS(credentials: 'aws-ecr-creds', region: "${AWS_REGION}") {
           sh 'docker push "$ECR_REGISTRY/$IMAGE_REPO:$IMAGE_TAG"'
         }
@@ -81,9 +86,8 @@ pipeline {
     }
 
     stage('Deploy to Kubernetes') {
-      when { expression { return !params.SKIP_DEPLOY } }
       steps {
-        withAWS(credentials: 'aws-creds', region: 'us-east-1') {
+        withAWS(credentials: 'aws-creds', region: "${AWS_REGION}") {
           sh '''
             aws eks update-kubeconfig --name roboshop --region us-east-1
             kubectl create namespace "$K8S_NAMESPACE" --dry-run=client -o yaml | kubectl apply -f -
