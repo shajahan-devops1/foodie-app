@@ -79,9 +79,6 @@ pipeline {
             docker push 906303433456.dkr.ecr.us-east-1.amazonaws.com/food-app/frontend:latest
           '''
         }
-        withAWS(credentials: 'aws-ecr-creds', region: "${AWS_REGION}") {
-          sh 'docker push "$ECR_REGISTRY/$IMAGE_REPO:$IMAGE_TAG"'
-        }
       }
     }
 
