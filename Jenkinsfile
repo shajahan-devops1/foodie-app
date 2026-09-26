@@ -29,6 +29,7 @@ pipeline {
     stage('Install & Test') {
       steps {
         dir('app') {
+          sh 'npm install'
           sh 'npm ci && npm test'
         }
       }
