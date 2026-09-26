@@ -120,6 +120,20 @@ pipeline {
     }
   }
 
+    stage('Post build actions') {
+      steps {
+        script {
+          if (currentBuild.result == 'SUCCESS') {
+            echo "Build succeeded. Performing post-build actions..."
+            // Add any post-build actions here, such as notifications or cleanup
+          } else {
+            echo "Build failed. Performing failure actions..."
+            // Add any failure actions here, such as notifications or cleanup
+          }
+        }
+      }
+    }
+
   post {
     success { echo "Food delivery pipeline completed successfully for ${params.DEPLOY_ENV}" }
     failure { echo "Food delivery pipeline failed." }
