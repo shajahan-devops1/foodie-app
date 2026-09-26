@@ -119,12 +119,15 @@ pipeline {
       }
     }
 
-  post {
-    success { echo "Food delivery pipeline completed successfully for ${params.DEPLOY_ENV}" }
-    failure { echo "Food delivery pipeline failed." }
-    // always {
-    //   sh 'docker image prune -f || true'
-    //   cleanWs()
-    // }
-  }
-}
+    stage ('post build actions') {
+      steps {
+        script {
+          if (currentBuild.currentResult == 'SUCCESS') {
+            echo "Build succeeded for ${params.DEPLOY_ENV}"
+          } else {
+            echo "Build failed for ${params.DEPLOY_ENV}"
+          }
+        }
+      }
+    }
+
