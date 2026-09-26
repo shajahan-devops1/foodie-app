@@ -187,16 +187,17 @@ pipeline {
                 --format table --output trivy-frontend.txt \
                 ${ECR_REGISTRY}/${FRONTEND_IMAGE}:${IMAGE_TAG}
             """
+
           }
         }
       }
     }
-      post {
-        always {
-          archiveArtifacts artifacts: 'trivy-*.txt', allowEmptyArchive: true
-        }
-      }
-    }
+    //   post {
+    //     always {
+    //       archiveArtifacts artifacts: 'trivy-*.txt', allowEmptyArchive: true
+    //     }
+    //   }
+    // }
 
     stage('Push to ECR') {
       steps {
@@ -271,21 +272,21 @@ pipeline {
     }
   }
 
-  post {
-    success {
-      slackSend(channel: env.SLACK_CHANNEL, color: 'good',
-        message: ":white_check_mark: *${env.JOB_NAME}* #${env.BUILD_NUMBER} succeeded (env: ${params.DEPLOY_ENV}, image tag: ${env.IMAGE_TAG})\n${env.BUILD_URL}")
-    }
-    failure {
-      slackSend(channel: env.SLACK_CHANNEL, color: 'danger',
-        message: ":x: *${env.JOB_NAME}* #${env.BUILD_NUMBER} failed at stage `${env.STAGE_NAME}` (env: ${params.DEPLOY_ENV})\n${env.BUILD_URL}console")
-    }
-    unstable {
-      slackSend(channel: env.SLACK_CHANNEL, color: 'warning',
-        message: ":warning: *${env.JOB_NAME}* #${env.BUILD_NUMBER} is unstable (env: ${params.DEPLOY_ENV})\n${env.BUILD_URL}")
-    }
-    always {
-      sh 'docker image prune -f || true'
-      cleanWs()
-    }
-  }
+  // post {
+  //   success {
+  //     slackSend(channel: env.SLACK_CHANNEL, color: 'good',
+  //       message: ":white_check_mark: *${env.JOB_NAME}* #${env.BUILD_NUMBER} succeeded (env: ${params.DEPLOY_ENV}, image tag: ${env.IMAGE_TAG})\n${env.BUILD_URL}")
+  //   }
+  //   failure {
+  //     slackSend(channel: env.SLACK_CHANNEL, color: 'danger',
+  //       message: ":x: *${env.JOB_NAME}* #${env.BUILD_NUMBER} failed at stage `${env.STAGE_NAME}` (env: ${params.DEPLOY_ENV})\n${env.BUILD_URL}console")
+  //   }
+  //   unstable {
+  //     slackSend(channel: env.SLACK_CHANNEL, color: 'warning',
+  //       message: ":warning: *${env.JOB_NAME}* #${env.BUILD_NUMBER} is unstable (env: ${params.DEPLOY_ENV})\n${env.BUILD_URL}")
+  //   }
+  //   always {
+  //     sh 'docker image prune -f || true'
+  //     cleanWs()
+  //   }
+  // }
