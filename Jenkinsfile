@@ -56,9 +56,8 @@ pipeline {
       steps {
         withAWS(credentials: 'aws-creds', region: "${AWS_REGION}") {
           sh '''
-            aws ecr get-login-password --region "$AWS_REGION" |
-              docker login --username AWS --password-stdin "$ECR_REGISTRY"
-            docker build -t "$ECR_REGISTRY/$IMAGE_REPO:$IMAGE_TAG" ./app
+            aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin 906303433456.dkr.ecr.us-east-1.amazonaws.com
+            docker build -t food-app/frontend ./app
           '''
         }
       }
@@ -68,7 +67,8 @@ pipeline {
       steps {
         sh '''
           // Scan the image, not the repo folder
-          trivy config --exit-code 1 --severity HIGH,CRITICAL --format table app/Dockerfile
+          trivy config --exit-code 1 --severity HIGH,CRITICAL --format table ./app/Dockerfile
+          trivy image  --scanners vuln --pkg-types os --exit-code 1 --severity HIGH,CRITICAL --format table 906303433456.dkr.ecr.us-east-1.amazonaws.com/food-app/frontend:${IMAGE_TAG}
         '''
       }
     }
