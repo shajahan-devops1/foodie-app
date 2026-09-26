@@ -6,7 +6,7 @@
 // Prerequisites (see JENKINS_SETUP.md for the full checklist):
 //   Jenkins plugins : Pipeline, NodeJS, Docker Pipeline, SonarQube Scanner,
 //                      Kubernetes CLI, Slack Notification, JUnit, HTML Publisher
-//   Jenkins tools   : NodeJS ("node20"), a "SonarQube" server configured under
+//   Jenkins tools   : NodeJS ("node20"), a "sonar-scanner" server configured under
 //                      Manage Jenkins > System, sonar-scanner + trivy + helm +
 //                      kubectl + aws-cli on the agent (or use the docker agent below)
 //   Jenkins creds   : aws-ecr-creds        (AWS access key/secret, "AWS Credentials")
@@ -22,24 +22,22 @@ pipeline {
   }
 
   options {                                // pipeline-wide behaviour
-        disableConcurrentBuilds()            // no two builds of this job at once
-        timeout(time: 15, unit: 'MINUTES')   // kill if it hangs
-    }
+    disableConcurrentBuilds()               // no two builds of this job at once
+    timeout(time: 60, unit: 'MINUTES')      // kill if it hangs (15 min was too tight for a full build+deploy)
+  }
 
   parameters {
     choice(name: 'DEPLOY_ENV', choices: ['dev', 'staging', 'prod'], description: 'Target environment / Helm values overlay')
     booleanParam(name: 'SKIP_DEPLOY', defaultValue: false, description: 'Build/scan/push only — skip the Kubernetes deploy + API test stages')
   }
 
-
-
   environment {
-    AWS_REGION        = 'us-east-1'
-    AWS_ACCOUNT_ID     = '906303433456'                 // <-- replace with your account id, or inject via a credential
-    ECR_REGISTRY       = "${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
-    BACKEND_IMAGE      = 'forkwise-backend'
-    FRONTEND_IMAGE     = 'forkwise-frontend'
-    IMAGE_TAG          = "${env.BUILD_NUMBER}-${env.GIT_COMMIT?.take(7) ?: 'local'}"
+    AWS_REGION         = 'us-east-1'
+    AWS_ACCOUNT_ID      = '906303433456'                 // <-- replace with your account id, or inject via a credential
+    ECR_REGISTRY        = "${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
+    BACKEND_IMAGE       = 'forkwise-backend'
+    FRONTEND_IMAGE      = 'forkwise-frontend'
+    IMAGE_TAG           = "${env.BUILD_NUMBER}-${env.GIT_COMMIT?.take(7) ?: 'local'}"
     K8S_NAMESPACE       = "forkwise-${params.DEPLOY_ENV}"
     SONAR_PROJECT_KEY   = 'forkwise-food-delivery-app'
     TRIVY_SEVERITY      = 'CRITICAL,HIGH'
@@ -47,13 +45,19 @@ pipeline {
   }
 
   stages {
+
     stage('Read version') {
-      steps { 
+      steps {
         script {
-          def packageJson = readJSON file: 'package.json'
-          appVersion = packageJson.version        // e.g. 1.0.0
+          // NOTE: there's no root-level package.json in this repo — only
+          // backend/package.json and frontend/package.json. Reading the
+          // backend's version here; appVersion isn't consumed elsewhere
+          // yet, this is just exposed for a future stage (e.g. tagging
+          // images with it instead of/alongside IMAGE_TAG).
+          def packageJson = readJSON file: 'backend/package.json'
+          appVersion = packageJson.version // e.g. 1.0.0
         }
-      }  
+      }
     }
 
     stage('Install Dependencies') {
@@ -146,35 +150,20 @@ pipeline {
         stage('Backend image') {
           steps {
             dir('backend') {
-              script {
-                withAWS(credentials: 'aws-creds', region: 'us-east-1') {
-                  sh """
-                  aws ecr get-login-password --region us-east-1 \
-                    | docker login --username AWS --password-stdin ${AWS_ACCOUNT_ID}.dkr.ecr.us-east-1.amazonaws.com
-                  docker build -t ${ECR_REGISTRY}/${BACKEND_IMAGE}:${IMAGE_TAG} .
-                  """
+              sh "docker build -t ${ECR_REGISTRY}/${BACKEND_IMAGE}:${IMAGE_TAG} ."
             }
           }
         }
-      }
-    }
         stage('Frontend image') {
           steps {
             dir('frontend') {
-              script {
-                withAWS(credentials: 'aws-creds', region: 'us-east-1') {
-                  sh """
-                    aws ecr get-login-password --region us-east-1 \
-                      | docker login --username AWS --password-stdin ${AWS_ACCOUNT_ID}.dkr.ecr.us-east-1.amazonaws.com
-                    docker build -t ${ECR_REGISTRY}/${FRONTEND_IMAGE}:${IMAGE_TAG} .
-                  """
-                }
-              }
+              sh "docker build -t ${ECR_REGISTRY}/${FRONTEND_IMAGE}:${IMAGE_TAG} ."
             }
           }
         }
       }
     }
+
     stage('Trivy Scan') {
       parallel {
         stage('Backend image scan') {
@@ -193,17 +182,15 @@ pipeline {
                 --format table --output trivy-frontend.txt \
                 ${ECR_REGISTRY}/${FRONTEND_IMAGE}:${IMAGE_TAG}
             """
-
           }
         }
       }
+      post {
+        always {
+          archiveArtifacts artifacts: 'trivy-*.txt', allowEmptyArchive: true
+        }
+      }
     }
-    //   post {
-    //     always {
-    //       archiveArtifacts artifacts: 'trivy-*.txt', allowEmptyArchive: true
-    //     }
-    //   }
-    // }
 
     stage('Push to ECR') {
       steps {
@@ -251,49 +238,49 @@ pipeline {
       }
     }
 
-  //   stage('API Tests (Post-Deploy)') {
-  //     when { expression { return !params.SKIP_DEPLOY } }
-  //     steps {
-  //       withCredentials([file(credentialsId: 'forkwise-kubeconfig', variable: 'KUBECONFIG')]) {
-  //         dir('backend') {
-  //           sh """
-  //             # Port-forward the in-cluster Service so tests hit the freshly
-  //             # deployed Pods directly, with no Ingress/DNS/TLS to configure.
-  //             kubectl -n ${K8S_NAMESPACE} port-forward svc/forkwise-backend 4000:4000 &
-  //             PF_PID=\$!
-  //             sleep 5
-  //             BASE_URL=http://localhost:4000 npm run test:smoke
-  //             TEST_EXIT=\$?
-  //             kill \$PF_PID || true
-  //             exit \$TEST_EXIT
-  //           """
-  //         }
-  //       }
-  //     }
-  //     post {
-  //       always {
-  //         junit testResults: 'backend/reports/junit-smoke.xml', allowEmptyResults: true
-  //       }
-  //     }
-  //   }
-  // }
+    stage('API Tests (Post-Deploy)') {
+      when { expression { return !params.SKIP_DEPLOY } }
+      steps {
+        withCredentials([file(credentialsId: 'forkwise-kubeconfig', variable: 'KUBECONFIG')]) {
+          dir('backend') {
+            sh """
+              # Port-forward the in-cluster Service so tests hit the freshly
+              # deployed Pods directly, with no Ingress/DNS/TLS to configure.
+              kubectl -n ${K8S_NAMESPACE} port-forward svc/forkwise-backend 4000:4000 &
+              PF_PID=\$!
+              sleep 5
+              BASE_URL=http://localhost:4000 npm run test:smoke
+              TEST_EXIT=\$?
+              kill \$PF_PID || true
+              exit \$TEST_EXIT
+            """
+          }
+        }
+      }
+      post {
+        always {
+          junit testResults: 'backend/reports/junit-smoke.xml', allowEmptyResults: true
+        }
+      }
+    }
+  }
 
-  // post {
-  //   success {
-  //     slackSend(channel: env.SLACK_CHANNEL, color: 'good',
-  //       message: ":white_check_mark: *${env.JOB_NAME}* #${env.BUILD_NUMBER} succeeded (env: ${params.DEPLOY_ENV}, image tag: ${env.IMAGE_TAG})\n${env.BUILD_URL}")
-  //   }
-  //   failure {
-  //     slackSend(channel: env.SLACK_CHANNEL, color: 'danger',
-  //       message: ":x: *${env.JOB_NAME}* #${env.BUILD_NUMBER} failed at stage `${env.STAGE_NAME}` (env: ${params.DEPLOY_ENV})\n${env.BUILD_URL}console")
-  //   }
-  //   unstable {
-  //     slackSend(channel: env.SLACK_CHANNEL, color: 'warning',
-  //       message: ":warning: *${env.JOB_NAME}* #${env.BUILD_NUMBER} is unstable (env: ${params.DEPLOY_ENV})\n${env.BUILD_URL}")
-  //   }
-  //   always {
-  //     sh 'docker image prune -f || true'
-  //     cleanWs()
-  //   }
-  // }
-}  
+  post {
+    success {
+      slackSend(channel: env.SLACK_CHANNEL, color: 'good',
+        message: ":white_check_mark: *${env.JOB_NAME}* #${env.BUILD_NUMBER} succeeded (env: ${params.DEPLOY_ENV}, image tag: ${env.IMAGE_TAG})\n${env.BUILD_URL}")
+    }
+    failure {
+      slackSend(channel: env.SLACK_CHANNEL, color: 'danger',
+        message: ":x: *${env.JOB_NAME}* #${env.BUILD_NUMBER} failed at stage `${env.STAGE_NAME}` (env: ${params.DEPLOY_ENV})\n${env.BUILD_URL}console")
+    }
+    unstable {
+      slackSend(channel: env.SLACK_CHANNEL, color: 'warning',
+        message: ":warning: *${env.JOB_NAME}* #${env.BUILD_NUMBER} is unstable (env: ${params.DEPLOY_ENV})\n${env.BUILD_URL}")
+    }
+    always {
+      sh 'docker image prune -f || true'
+      cleanWs()
+    }
+  }
+}
