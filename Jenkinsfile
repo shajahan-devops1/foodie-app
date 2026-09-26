@@ -84,12 +84,10 @@ pipeline {
 
     stage('Deploy to Kubernetes') {
       steps {
-        withAWS(credentials: 'aws-creds', region: "${AWS_REGION}") {
-          sh '''
-            aws eks update-kubeconfig --name roboshop --region us-east-1
-            kubectl get pods -o wide
-          '''
-        }
+        sh '''
+          aws eks update-kubeconfig --name roboshop --region us-east-1
+          kubectl get pods -o wide
+        '''
       }
     }
 
