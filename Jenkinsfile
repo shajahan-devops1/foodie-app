@@ -123,13 +123,7 @@ pipeline {
     stage('Post build actions') {
       steps {
         script {
-          if (currentBuild.result == 'SUCCESS') {
-            echo "Build succeeded. Performing post-build actions..."
-            // Add any post-build actions here, such as notifications or cleanup
-          } else {
-            echo "Build failed. Performing failure actions..."
-            // Add any failure actions here, such as notifications or cleanup
-          }
+          echo "Post build actions for ${params.DEPLOY_ENV} is executed."
         }
       }
     }
