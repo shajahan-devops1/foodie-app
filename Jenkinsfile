@@ -66,8 +66,7 @@ pipeline {
     stage('Trivy Scan') {
       steps {
         sh '''
-          sleep time: 12, unit: 'SECONDS'
-          echo 'scanning image for vulnerabilities'
+          sleep 12
         '''
       }
     }
