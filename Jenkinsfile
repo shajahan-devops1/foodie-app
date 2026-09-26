@@ -66,7 +66,7 @@ pipeline {
     stage('Trivy Scan') {
       steps {
         sh '''
-          sleep 12
+          sleep 8
         '''
       }
     }
