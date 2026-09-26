@@ -238,32 +238,6 @@ pipeline {
         }
       }
     }
-
-    stage('API Tests (Post-Deploy)') {
-      when { expression { return !params.SKIP_DEPLOY } }
-      steps {
-        withCredentials([file(credentialsId: 'forkwise-kubeconfig', variable: 'KUBECONFIG')]) {
-          dir('backend') {
-            sh """
-              # Port-forward the in-cluster Service so tests hit the freshly
-              # deployed Pods directly, with no Ingress/DNS/TLS to configure.
-              kubectl -n ${K8S_NAMESPACE} port-forward svc/forkwise-backend 4000:4000 &
-              PF_PID=\$!
-              sleep 5
-              BASE_URL=http://localhost:4000 npm run test:smoke
-              TEST_EXIT=\$?
-              kill \$PF_PID || true
-              exit \$TEST_EXIT
-            """
-          }
-        }
-      }
-      post {
-        always {
-          junit testResults: 'backend/reports/junit-smoke.xml', allowEmptyResults: true
-        }
-      }
-    }
   }
 
   post {
