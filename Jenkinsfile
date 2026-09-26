@@ -35,17 +35,10 @@ pipeline {
       }
     }
 
-    stage('Sonar Analysis') {
+    stage('SonarQube Analysis') {
       steps {
-        script {
-          def scannerHome = tool 'sonar-8'   // resolves the Jenkins "SonarQube Scanner" tool installation to a path
-          withSonarQubeEnv('sonar-scanner') { // name of the SonarQube *server* config in Manage Jenkins > System
-            sh """
-              ${scannerHome}/bin/sonar-scanner \
-                -Dsonar.projectKey=${SONAR_PROJECT_KEY} \
-                -Dsonar.projectVersion=${IMAGE_TAG}
-            """
-          }
+        withSonarQubeEnv('sonar-server') {
+            sh "${tool 'sonar-8'}/bin/sonar-scanner"
         }
       }
     }
