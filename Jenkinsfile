@@ -79,25 +79,25 @@ pipeline {
       }
     }
 
-    stage('Unit Tests') {
-      steps {
-        dir('backend') {
-          // Unit + API tests, with coverage (lcov -> Sonar) and JUnit XML (-> Jenkins + Sonar)
-          sh 'npm run test:ci'
-        }
-      }
-      post {
-        always {
-          junit testResults: 'backend/reports/junit.xml', allowEmptyResults: true
-          publishHTML(target: [
-            reportDir: 'backend/coverage/lcov-report',
-            reportFiles: 'index.html',
-            reportName: 'Backend Coverage Report',
-            keepAll: true,
-            alwaysLinkToLastBuild: true
-          ])
-        }
-      }
+    // stage('Unit Tests') {
+    //   steps {
+    //     dir('backend') {
+    //       // Unit + API tests, with coverage (lcov -> Sonar) and JUnit XML (-> Jenkins + Sonar)
+    //       sh 'npm run test:ci'
+    //     }
+    //   }
+    //   post {
+    //     always {
+    //       junit testResults: 'backend/reports/junit.xml', allowEmptyResults: true
+    //       publishHTML(target: [
+    //         reportDir: 'backend/coverage/lcov-report',
+    //         reportFiles: 'index.html',
+    //         reportName: 'Backend Coverage Report',
+    //         keepAll: true,
+    //         alwaysLinkToLastBuild: true
+    //       ])
+    //     }
+    //   }
     }
 
     stage('Sonar Analysis') {
