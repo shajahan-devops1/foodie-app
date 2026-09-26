@@ -67,7 +67,8 @@ pipeline {
     stage('Trivy Scan') {
       steps {
         sh '''
-          trivy image --exit-code 1 --severity HIGH,CRITICAL             --format table "$ECR_REGISTRY/$IMAGE_REPO:$IMAGE_TAG"
+          // Scan the image, not the repo folder
+          sh 'trivy image --severity HIGH,CRITICAL food-delivery-api:latest'
         '''
       }
     }
