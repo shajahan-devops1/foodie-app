@@ -38,7 +38,7 @@ pipeline {
     // grounded in the commented SonarQube block, nodejsEKSPipeline.groovy
     stage('SonarQube Analysis') {
       steps {
-        withSonarQubeEnv('sonar-server') {
+        withSonarQubeEnv('sonar-scanner') {
           sh "${tool 'sonar-8'}/bin/sonar-scanner"
         }
       }
